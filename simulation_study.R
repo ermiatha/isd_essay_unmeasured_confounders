@@ -77,6 +77,7 @@ mean_rr <- mean(results$rr)
 mean_e_value <- mean(results$e_value, na.rm = T)  # 18 NAs, negative sqrt
 
 # ATE for binary data?
+## get mean probability diff between x=1 and x=0
 
 ### Determine what to vary
 # strength of confounder
@@ -84,7 +85,7 @@ mean_e_value <- mean(results$e_value, na.rm = T)  # 18 NAs, negative sqrt
 # sample size
 
 
-# Add Measured covariates 
+# Add measured covariates 
 gender <- rbinom(N, 1, 0.55)
 age <- sample(18:55, N, replace = T)
 edu <- rbinom(N, 1, 0.5)
@@ -93,11 +94,13 @@ edu <- rbinom(N, 1, 0.5)
 # Step 2: Account for unmeasured confounding using IV (instrumental variable)
 
 # Dataset with variable correlated with X but not y
-iv <- rbinom(N, 1, prob_x)
+iv <- rbinom(N, 1, prob_x)  
+# 3 step aproach, regression, prediction, regression
+
 
 # Step 3: Account for unmeasured confounding using DiD
-
 # repeated measured data structure
+# continuous outcome
 
 df$post <- 0
 # df <- df %>% mutate(id=row_number())
