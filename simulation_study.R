@@ -14,16 +14,16 @@ sim <- 1000  # number of simulations
 N <- 100  # sample size per simulation
 
 # Coefficients
-beta0 <- 0.1
-beta1 <- 0.7  # Coefficient for treatment (X)
 beta_ux <- 0.8  # Coefficient for confounder (U) on X
-beta2 <- 1.9  # Coefficient for confounder (U) on Y
-beta3 <- 0.9
+beta_y0 <- 1
+beta_y1 <- 1.5
 
 results <- data.frame(
   sim = integer(sim),
   coef_x = numeric(sim),
   coef_x_u = numeric(sim),
+  true_ATE = numeric(sim),
+  estim_ATE = numeric(sim),
   rr = numeric(sim),
   e_value = numeric(sim)
 )
@@ -39,8 +39,8 @@ for (i in 1:sim) {
   error <- rnorm(N)
   
   # potential outcomes
-  y0 <- rbinom(N, 1, prob = plogis(beta2 * u))
-  y1 <- rbinom(N, 1, prob = plogis(beta2 * u + beta3))
+  y0 <- rbinom(N, 1, prob = plogis(beta_y0 * u))
+  y1 <- rbinom(N, 1, prob = plogis(beta_y1 * u))
   
   # Binary outcome Y based on X, U
  #  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
@@ -48,7 +48,6 @@ for (i in 1:sim) {
   
   df <- data.frame(id = 1:N, x, y, y1, y0, u)
   
-  trueATE <- mean(df$y1) - mean(df$y0)
   
   m1 <- glm(y ~ x, data = df, family = "binomial")  # Without U
   m2 <- glm(y ~ x + u, data = df, family = "binomial")  # With U
@@ -68,6 +67,8 @@ for (i in 1:sim) {
     sim = i,
     coef_x = coef(m1)["x"],  # Coefficient for X without U
     coef_x_u = coef(m2)["x"],  # Coefficient for X with U
+    true_ATE =  mean(df$y1) - mean(df$y0),
+    estim_ATE = mean(df$y[df$x == 1]) - mean(df$y[df$x == 0]),
     rr = RR,  # Relative risk
     e_value = RR + sqrt(RR * (RR-1))
   )
@@ -76,6 +77,8 @@ for (i in 1:sim) {
 # look at results
 summary(results)
 hist(results$e_value)
+hist(results$true_ATE)
+hist(results$estim_ATE)
 
 
 # Average estimates
