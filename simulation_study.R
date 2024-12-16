@@ -18,6 +18,7 @@ beta0 <- 0.1
 beta1 <- 0.7  # Coefficient for treatment (X)
 beta_ux <- 0.8  # Coefficient for confounder (U) on X
 beta2 <- 1.9  # Coefficient for confounder (U) on Y
+beta3 <- 0.9
 
 results <- data.frame(
   sim = integer(sim),
@@ -35,12 +36,19 @@ for (i in 1:sim) {
   prob_x <- plogis(beta_ux * u)
   x <- rbinom(N, 1, prob_x)
   
-  # Binary outcome Y based on X, U, and random error
   error <- rnorm(N)
-  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
-  y <- rbinom(N, 1, prob = y_prob)
   
-  df <- data.frame(id = 1:N, x, y, y_prob, u)
+  # potential outcomes
+  y0 <- rbinom(N, 1, prob = plogis(beta2 * u))
+  y1 <- rbinom(N, 1, prob = plogis(beta2 * u + beta3))
+  
+  # Binary outcome Y based on X, U
+ #  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
+  y <- x * y1 + (1-x) * y0
+  
+  df <- data.frame(id = 1:N, x, y, y1, y0, u)
+  
+  trueATE <- mean(df$y1) - mean(df$y0)
   
   m1 <- glm(y ~ x, data = df, family = "binomial")  # Without U
   m2 <- glm(y ~ x + u, data = df, family = "binomial")  # With U
