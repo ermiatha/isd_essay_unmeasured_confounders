@@ -14,15 +14,16 @@ sim <- 1000  # number of simulations
 N <- 100  # sample size per simulation
 
 # Coefficients
-beta0 <- 0.1
-beta1 <- 0.7  # Coefficient for treatment (X)
 beta_ux <- 0.8  # Coefficient for confounder (U) on X
-beta2 <- 1.9  # Coefficient for confounder (U) on Y
+beta_y0 <- 1
+beta_y1 <- 1.5
 
 results <- data.frame(
   sim = integer(sim),
   coef_x = numeric(sim),
   coef_x_u = numeric(sim),
+  true_ATE = numeric(sim),
+  estim_ATE = numeric(sim),
   rr = numeric(sim),
   e_value = numeric(sim)
 )
@@ -35,12 +36,18 @@ for (i in 1:sim) {
   prob_x <- plogis(beta_ux * u)
   x <- rbinom(N, 1, prob_x)
   
-  # Binary outcome Y based on X, U, and random error
   error <- rnorm(N)
-  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
-  y <- rbinom(N, 1, prob = y_prob)
   
-  df <- data.frame(id = 1:N, x, y, y_prob, u)
+  # potential outcomes
+  y0 <- rbinom(N, 1, prob = plogis(beta_y0 * u))
+  y1 <- rbinom(N, 1, prob = plogis(beta_y1 * u))
+  
+  # Binary outcome Y based on X, U
+ #  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
+  y <- x * y1 + (1-x) * y0
+  
+  df <- data.frame(id = 1:N, x, y, y1, y0, u)
+  
   
   m1 <- glm(y ~ x, data = df, family = "binomial")  # Without U
   m2 <- glm(y ~ x + u, data = df, family = "binomial")  # With U
@@ -60,6 +67,8 @@ for (i in 1:sim) {
     sim = i,
     coef_x = coef(m1)["x"],  # Coefficient for X without U
     coef_x_u = coef(m2)["x"],  # Coefficient for X with U
+    true_ATE =  mean(df$y1) - mean(df$y0),
+    estim_ATE = mean(df$y[df$x == 1]) - mean(df$y[df$x == 0]),
     rr = RR,  # Relative risk
     e_value = RR + sqrt(RR * (RR-1))
   )
@@ -68,6 +77,8 @@ for (i in 1:sim) {
 # look at results
 summary(results)
 hist(results$e_value)
+hist(results$true_ATE)
+hist(results$estim_ATE)
 
 
 # Average estimates
@@ -77,6 +88,7 @@ mean_rr <- mean(results$rr)
 mean_e_value <- mean(results$e_value, na.rm = T)  # 18 NAs, negative sqrt
 
 # ATE for binary data?
+## get mean probability diff between x=1 and x=0
 
 ### Determine what to vary
 # strength of confounder
@@ -84,7 +96,7 @@ mean_e_value <- mean(results$e_value, na.rm = T)  # 18 NAs, negative sqrt
 # sample size
 
 
-# Add Measured covariates 
+# Add measured covariates 
 gender <- rbinom(N, 1, 0.55)
 age <- sample(18:55, N, replace = T)
 edu <- rbinom(N, 1, 0.5)
@@ -93,11 +105,13 @@ edu <- rbinom(N, 1, 0.5)
 # Step 2: Account for unmeasured confounding using IV (instrumental variable)
 
 # Dataset with variable correlated with X but not y
-iv <- rbinom(N, 1, prob_x)
+iv <- rbinom(N, 1, prob_x)  
+# 3 step aproach, regression, prediction, regression
+
 
 # Step 3: Account for unmeasured confounding using DiD
-
 # repeated measured data structure
+# continuous outcome
 
 df$post <- 0
 # df <- df %>% mutate(id=row_number())
