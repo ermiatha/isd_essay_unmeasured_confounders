@@ -7,12 +7,10 @@ library(ggplot2)
 
 
 # Step 1: Generate Data for sensitivity analysis with e-value
-
 set.seed(456)
 
-sim <- 1000  # number of simulations
+sim <- 100  # number of simulations
 N <- 100  # sample size per simulation
-
 
 # Coefficients
 beta_ux <- c(0.5, 0.8, 1.8, 3.5)  # Coefficient for confounder (U) on X
@@ -25,8 +23,13 @@ prob_u <- 0.5
 
 m <- length(beta_ux)
 
+# create a list to store all dataframes of varying m
+results_list <- vector("list", m)
+
 results <- data.frame(
   sim = integer(sim),
+  j = integer(sim),
+  beta_ux = integer(sim),
   coef_x = numeric(sim),
   coef_x_u = numeric(sim),
   true_ATE = numeric(sim),
@@ -34,6 +37,7 @@ results <- data.frame(
   rr = numeric(sim),
   e_value = numeric(sim)
 )
+
 
 results_by_u <- data.frame(
   u_variant = integer(m),
@@ -79,16 +83,23 @@ for (j in 1:m) {
     # RR for E-value: assumed to be equivalent between U = 0 and U = 1
     
     # results
+    
     results[i, ] <- c(
+    #assign(paste0("results", j), data.frame(
       sim = i,
+      j = j,
+      beta_ux = beta_ux[j],
       coef_x = coef(m1)["x"],  # Coefficient for X without U
       coef_x_u = coef(m2)["x"],  # Coefficient for X with U
       true_ATE =  mean(df$y1) - mean(df$y0),
       estim_ATE = mean(df$y[df$x == 1]) - mean(df$y[df$x == 0]),
       rr = RR,  # Relative risk
       e_value = RR + sqrt(RR * (RR-1))
-                      )
+
+      )
+  
   }
+  results_list[[j]] <- results
   
   results_by_u[j, ] <- c(
     u_variant = j,
@@ -99,6 +110,8 @@ for (j in 1:m) {
                         )
 }
 
+tot_results <- do.call(rbind, results_list)
+
 # calculate bias as difference between real and estimated ATE
 results_by_u$bias = results_by_u$estim_ATE - results_by_u$true_ATE
 # add also diff between RR's ?
@@ -106,5 +119,30 @@ results_by_u$bias = results_by_u$estim_ATE - results_by_u$true_ATE
 # look at results
 results_by_u
 summary(results_by_u)
+
+
+results_by_u$u_variant <- as.factor(results_by_u$u_variant)
+
+
+long_totres <- tot_results %>%
+  pivot_longer(
+    names_to = "ATE",
+    values_to = "ATE_values",
+    cols = c("true_ATE",  "estim_ATE")
+    
+  )
+
+str(long_totres)
+long_totres$sim <-  as.factor(long_totres$sim)
+long_totres$j <-    as.factor(long_totres$j)
+
+# Visualize results
+
+ggplot(tot_results, aes(x = factor(j), y = e_value)) +
+  geom_boxplot()
+
+
+ggplot(long_totres, aes(x = factor(j), y = ATE_values, fill = ATE)) +
+  geom_boxplot()
 
 
