@@ -1,0 +1,110 @@
+# Simulation Study
+# 15.12.2024
+# Ermioni Athanasiadi
+
+library(tidyverse)
+library(ggplot2)
+
+
+# Step 1: Generate Data for sensitivity analysis with e-value
+
+set.seed(456)
+
+sim <- 1000  # number of simulations
+N <- 100  # sample size per simulation
+
+
+# Coefficients
+beta_ux <- c(0.5, 0.8, 1.8, 3.5)  # Coefficient for confounder (U) on X
+#beta_ux <- 0.8
+beta_y0 <- 1
+beta_y1 <- 1.5
+
+# prob_u <- c(0.5, 0.6, 0.75, 0.9)
+prob_u <- 0.5
+
+m <- length(beta_ux)
+
+results <- data.frame(
+  sim = integer(sim),
+  coef_x = numeric(sim),
+  coef_x_u = numeric(sim),
+  true_ATE = numeric(sim),
+  estim_ATE = numeric(sim),
+  rr = numeric(sim),
+  e_value = numeric(sim)
+)
+
+results_by_u <- data.frame(
+  u_variant = integer(m),
+  mean_evalue = numeric(m),
+  true_ATE = numeric(m),
+  estim_ATE = numeric(m),
+  bias = numeric(m)
+                            )
+
+for (j in 1:m) {
+  for (i in 1:sim) {
+    # Unmeasured confounder U
+    u <- rbinom(N, 1, prob_u)
+    
+    # treatment X based on U
+    prob_x <- plogis(beta_ux[j] * u)
+    x <- rbinom(N, 1, prob_x)
+    
+    error <- rnorm(N)
+    
+    # potential outcomes
+    y0 <- rbinom(N, 1, prob = plogis(beta_y0 * u))
+    y1 <- rbinom(N, 1, prob = plogis(beta_y1 * u))
+    
+    # Binary outcome Y based on X, U
+    #  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
+    y <- x * y1 + (1-x) * y0
+    
+    df <- data.frame(id = 1:N, x, y, y1, y0, u)
+    
+    
+    m1 <- glm(y ~ x, data = df, family = "binomial")  # Without U
+    m2 <- glm(y ~ x + u, data = df, family = "binomial")  # With U
+    
+    cont_tab <- table(df$y, df$x)
+    A <- cont_tab[1]
+    B <- cont_tab[3]
+    C <- cont_tab[2]
+    D <- cont_tab[4]
+    
+    # Compute relative risk (RR)
+    RR <- (A / (A + B)) / (C / (C + D))
+    # RR for E-value: assumed to be equivalent between U = 0 and U = 1
+    
+    # results
+    results[i, ] <- c(
+      sim = i,
+      coef_x = coef(m1)["x"],  # Coefficient for X without U
+      coef_x_u = coef(m2)["x"],  # Coefficient for X with U
+      true_ATE =  mean(df$y1) - mean(df$y0),
+      estim_ATE = mean(df$y[df$x == 1]) - mean(df$y[df$x == 0]),
+      rr = RR,  # Relative risk
+      e_value = RR + sqrt(RR * (RR-1))
+                      )
+  }
+  
+  results_by_u[j, ] <- c(
+    u_variant = j,
+    mean_evalue = mean(results$e_value, na.rm = T),
+    true_ATE = mean(results$true_ATE),
+    estim_ATE = mean(results$estim_ATE),
+    bias = 0
+                        )
+}
+
+# calculate bias as difference between real and estimated ATE
+results_by_u$bias = results_by_u$estim_ATE - results_by_u$true_ATE
+# add also diff between RR's ?
+
+# look at results
+results_by_u
+summary(results_by_u)
+
+
