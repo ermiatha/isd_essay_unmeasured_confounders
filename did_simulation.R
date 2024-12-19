@@ -86,7 +86,7 @@ par(family = "LMRoman12")
 hist(did_estimates, 
      breaks = 30, 
      col = "skyblue", 
-     main = "Distribution of DiD Estimates",
+     main = "",
      xlab = "DiD Estimate", 
      border = "white", 
      family = "LMRoman12")
