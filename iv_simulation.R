@@ -38,7 +38,7 @@ iv_model <- lm(y ~ x_pred)
 ### repeat with simulations
 
 sim <- 1000
-
+N <- 100 # sample size
 # set coefficients
 true_model_coeffs <- matrix(NA, nrow = sim, ncol = 2)
 biased_model_coeffs <- matrix(NA, nrow = sim, ncol = 2)
@@ -48,18 +48,18 @@ set.seed(456)
 
 for (i in 1:sim) {
   # generate correlated variables xR and c
-  xR_and_c <- mvrnorm(1000, c(2, 1.5), matrix(c(1, 0.55, 0.55, 1), 2, 2))
+  xR_and_c <- mvrnorm(N, c(2, 1.5), matrix(c(1, 0.55, 0.55, 1), 2, 2))
   xR <- xR_and_c[, 1]
   c <- xR_and_c[, 2]  # unobserved confounder
   
   # instrument
-  z <- rnorm(1000)
+  z <- rnorm(N)
   
   # observed x
   x <- xR + z
   
   # outcome
-  y <- 1 + x + c + rnorm(1000, 0, 0.5)
+  y <- 1 + x + c + rnorm(N, 0, 0.5)
   
   # true model (not observable in practice because c is unobserved)
   true_model <- lm(y ~ x + c)
