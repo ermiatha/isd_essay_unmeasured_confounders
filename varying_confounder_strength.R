@@ -146,6 +146,42 @@ ggplot(tot_results, aes(x = factor(j), y = e_value)) +
 ggplot(long_totres, aes(x = factor(j), y = ATE_values, fill = ATE)) +
   geom_boxplot()
 
+# Boxplot of E-values by levels of confounding (j)
+ggplot(tot_results, aes(x = factor(j), y = e_value)) +
+  geom_boxplot(fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Variation of E-values across Levels of Confounding",
+    x = "Confounding Level (j)",
+    y = "E-value",
+    caption = "E-values represent robustness to unmeasured confounding"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+ggsave("e_values_boxplot.png", width = 8, height = 6)
+
+# Boxplot comparing true and estimated ATE across levels of confounding (j)
+ggplot(long_totres, aes(x = factor(j), y = ATE_values, fill = ATE)) +
+  geom_boxplot(alpha = 0.8, position = position_dodge(width = 0.75)) +
+  scale_fill_manual(values = c("true_ATE" = "tomato", "estim_ATE" = "skyblue"),
+                    labels = c("True ATE", "Estimated ATE")) +
+  labs(
+    title = "True vs Estimated ATE across Levels of Confounding",
+    x = "Confounding Level (j)",
+    y = "ATE Values",
+    fill = "ATE Type",
+    caption = "True ATE is calculated from the potential outcomes; Estimated ATE is from observed data"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+ggsave("ate_comparison_boxplot.png", width = 8, height = 6)
+
 ## Variant 2: with continuous confounder ######################################
 
 set.seed(456)
