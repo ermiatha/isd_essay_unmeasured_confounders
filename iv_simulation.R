@@ -107,3 +107,26 @@ hist_coef <- ggplot(iv_model_results, aes(x = Beta_X_IV)) +
   labs(title = "Distribution of IV Model Estimates of X", x = "Beta_X_IV", y = "Frequency")
 
 hist_coef
+
+# Histogram of Beta_X_IV for IV model (Simulation Study)
+iv_x_mean <- mean(iv_model_results$Beta_X_IV)
+true_x_mean <- mean(true_model_results$Beta_X_True)
+
+hist_coef <- ggplot(iv_model_results, aes(x = Beta_X_IV)) +
+  geom_histogram(binwidth = 0.05, fill = "skyblue", color = "white", alpha = 0.7) +
+  geom_vline(xintercept = iv_x_mean, color = "blue", linetype = "solid", size = 1.0) +
+  geom_vline(xintercept = true_x_mean, color = "red", linetype = "dashed", size = 1.2) +
+  labs(
+    title = "Distribution of IV Model Estimates of X",
+    x = "Beta_X_IV",
+    y = "Frequency",
+    caption = "Blue line: Mean IV Estimate; Red dashed line: Mean True Estimate"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+
+ggsave("iv_model_histogram.png", width = 8, height = 6)
+hist_coef
