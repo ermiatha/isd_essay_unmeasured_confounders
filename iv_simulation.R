@@ -104,7 +104,7 @@ hist_coef <- ggplot(iv_model_results, aes(x = Beta_X_IV)) +
              aes(label = paste("Mean IV Estimate: ", round(iv_x_mean, 2)))) +
   geom_vline(xintercept = true_x_mean, color = "red", linetype = "dashed", size = 1.2, 
              aes(label = paste("Mean True Estimate: ", round(true_x_mean, 2)))) +
-  labs(title = "Distribution of IV Model Estimates of X", x = "Beta_X_IV", y = "Frequency")
+  labs(title = "Distribution of IV Model Estimates of X", x = "Coefficient Estimate", y = "Frequency")
 
 hist_coef
 
