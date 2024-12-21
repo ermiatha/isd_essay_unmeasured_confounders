@@ -186,19 +186,17 @@ ggsave("ate_comparison_boxplot.png", width = 8, height = 6)
 
 set.seed(456)
 
-sim <- 200 # number of simulations
+sim <- 1000 # number of simulations
 N <- 100  # sample size per simulation
 
 # Coefficients
-beta_ux <- c(0.5, 0.8, 1.8, 3.5)  # Coefficient for binary confounder (U) on X
-#beta_ux <- 0.8
+beta_ux <- 0.8
 beta_y0 <- 1
 beta_y1 <- 2.5
 
-# mu <- c(0.5, 1.5, 2.5, 4)
-# mu <- 1.5
-mu <- c(-10, -5, -1, -0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5, 1, 2, 3, 4, 5)
 
+# mu <- c(-1, -0.5, -0.2, -0.1, 0, 0.1, 0.2, 0.5, 1)
+mu <- c(0.1, 0.2, 0.5, 1, 1.5)
 m <- length(mu)
 
 
@@ -223,13 +221,14 @@ results_by_u <- data.frame(
   mean_evalue = numeric(m),
   true_ATE = numeric(m),
   estim_ATE = numeric(m),
-  bias = numeric(m)
+  bias = numeric(m),
+  RR = numeric(m)
 )
 
 for (j in 1:m) {
   for (i in 1:sim) {
     # Unmeasured confounder U
-    u <- rnorm(N, mean = mu[j], sd = 1)
+    u <- rnorm(N, mean = mu[j], sd = 0.5)
     
     # treatment X based on U
     prob_x <- plogis(beta_ux * u)  # p = 1/(1+exp(-x))
@@ -242,7 +241,6 @@ for (j in 1:m) {
     y1 <- rbinom(N, 1, prob = plogis(beta_y1 * u))
     
     # Binary outcome Y based on X, confounded with U
-    #  y_prob <- plogis(beta0 + beta1 * x + beta2 * u + error)
     y <- x * y1 + (1-x) * y0
     
     df <- data.frame(id = 1:N, x, y, y1, y0, u)
@@ -285,7 +283,8 @@ for (j in 1:m) {
     mean_evalue = mean(results$e_value, na.rm = T),
     true_ATE = mean(results$true_ATE),
     estim_ATE = mean(results$estim_ATE),
-    bias = 0
+    bias = 0,
+    RR = mean(results$rr)
   )
 }
 
@@ -316,4 +315,9 @@ long_totres$sim <-  as.factor(long_totres$sim)
 long_totres$j <-    as.factor(long_totres$j)
 
 # Visualize results
+ggplot(tot_results, aes(x = factor(j), y = e_value)) +
+  geom_boxplot()
 
+
+ggplot(long_totres, aes(x = factor(j), y = ATE_values, fill = ATE)) +
+  geom_boxplot()
