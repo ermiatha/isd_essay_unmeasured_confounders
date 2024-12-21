@@ -184,6 +184,8 @@ ggsave("ate_comparison_boxplot.png", width = 8, height = 6)
 
 ## Variant 2: with continuous confounder ######################################
 
+#------------------------------------------------------------------------------
+# 2 E-Value Simulation
 set.seed(456)
 
 sim <- 1000 # number of simulations
@@ -227,7 +229,7 @@ results_by_u <- data.frame(
 
 for (j in 1:m) {
   for (i in 1:sim) {
-    # Unmeasured confounder U
+    # unmeasured confounder U
     u <- rnorm(N, mean = mu[j], sd = 0.5)
     
     # treatment X based on U
@@ -245,7 +247,6 @@ for (j in 1:m) {
     
     df <- data.frame(id = 1:N, x, y, y1, y0, u)
     
-    
     m1 <- glm(y ~ x, data = df, family = "binomial")  # Without U
     m2 <- glm(y ~ x + u, data = df, family = "binomial")  # With U
     
@@ -260,9 +261,7 @@ for (j in 1:m) {
     # RR for E-value: assumed to be equivalent between U = 0 and U = 1
     
     # results
-    
     results[i, ] <- c(
-      #assign(paste0("results", j), data.frame(
       sim = i,
       j = j,
       beta_ux = beta_ux[j],
@@ -271,10 +270,7 @@ for (j in 1:m) {
       true_ATE =  mean(df$y1) - mean(df$y0),
       estim_ATE = mean(df$y[df$x == 1]) - mean(df$y[df$x == 0]),
       rr = RR,  # Relative risk
-      e_value = RR + sqrt(RR * (RR-1))
-      
-    )
-    
+      e_value = RR + sqrt(RR * (RR-1)))
   }
   results_list[[j]] <- results
   
@@ -292,15 +288,12 @@ tot_results <- do.call(rbind, results_list)
 
 # calculate bias as difference between real and estimated ATE
 results_by_u$bias = results_by_u$estim_ATE - results_by_u$true_ATE
-# add also diff between RR's ?
 
 # look at results
 results_by_u
 summary(results_by_u)
 
-
 results_by_u$u_variant <- as.factor(results_by_u$u_variant)
-
 
 long_totres <- tot_results %>%
   pivot_longer(
@@ -314,10 +307,40 @@ str(long_totres)
 long_totres$sim <-  as.factor(long_totres$sim)
 long_totres$j <-    as.factor(long_totres$j)
 
+
 # Visualize results
+# Boxplot of E-values by levels of confounding (j)
 ggplot(tot_results, aes(x = factor(j), y = e_value)) +
-  geom_boxplot()
+  geom_boxplot(fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Variation of E-values across Levels of Confounding",
+    x = "Confounding Level (j)",
+    y = "E-value",
+    caption = "E-values represent robustness to unmeasured confounding"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold")
+  )
+ggsave("e_values_boxplot.png", width = 8, height = 6)
 
-
+# Boxplot comparing true and estimated ATE across levels of confounding (j)
 ggplot(long_totres, aes(x = factor(j), y = ATE_values, fill = ATE)) +
-  geom_boxplot()
+  geom_boxplot(alpha = 0.8, position = position_dodge(width = 0.75)) +
+  scale_fill_manual(values = c("true_ATE" = "tomato", "estim_ATE" = "skyblue"),
+                    labels = c("True ATE", "Estimated ATE")) +
+  labs(
+    title = "True vs Estimated ATE across Levels of Confounding",
+    x = "Confounding Level (j)",
+    y = "ATE Values",
+    fill = "ATE Type",
+    caption = "True ATE is calculated from the potential outcomes; Estimated ATE is from observed data"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.title = element_text(face = "bold"),
+    legend.position = "top"
+  )
+ggsave("ate_comparison_boxplot.png", width = 8, height = 6)
