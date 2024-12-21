@@ -89,7 +89,9 @@ hist(did_estimates,
      main = "",
      xlab = "DiD Estimate", 
      border = "white", 
-     family = "LMRoman12")
+     family = "LMRoman12",
+     xlim = c(1, 3),
+     ylim = c(0, 100))
 abline(v = att, col = "red", lwd = 2, lty = 2)
 abline(v = did_estimate_avg, col = "blue", lwd = 2, lty = 2)
 legend("topright", legend = c("True ATT", "Average DiD Estimate"),
