@@ -97,7 +97,7 @@ iv_ATE_emp <- mean(iv_model_results$ATE_emp)
 
 font_add("LMRoman12", "lmroman12-regular.otf")
 showtext_auto()
-png("shared_outputs/iv_hist_ate.png", width = 2400, height = 1800, res = 300)
+png("shared_outputs/iv_hist_ate.png", width = 1200, height = 900, res = 300)
 par(family = "LMRoman12")
 hist(iv_model_results$ATE_emp, 
      breaks = 30,
