@@ -13,48 +13,51 @@ true_model_coeffs <- matrix(NA, nrow = sim, ncol = 2)
 biased_model_coeffs <- matrix(NA, nrow = sim, ncol = 2)
 iv_model_coeffs <- matrix(NA, nrow = sim, ncol = 2)
 
-# simulate dataset 
-set.seed(456) 
-for (i in 1:sim) {
-  # generate correlated variables xR and c
-  xR_and_c <- mvrnorm(N, c(2, 1.5), matrix(c(1, 0.55, 0.55, 1), 2, 2))
-  xR <- xR_and_c[, 1]
-  c <- xR_and_c[, 2]  # unobserved confounder
-  
-  # instrument
-  z <- rnorm(N)
-  
-  # observed x
-  x <- xR + z  # should be binary
-  
-  # potential outcomes
-  y0 <- 1 + 1.5*0 + c + rnorm(N, 0, 0.5)
-  y1 <- 1 + 1.5*1 + c + rnorm(N, 0, 0.5)  # real effect of 1.5
-  
-  # outcome Y based on treatment X
-  y <- x * y1 + (1-x) * y0
-  # y <- 1 + 1.5*x + c + rnorm(N, 0, 0.5)
-  
-  # dataset
-  df <- data.frame(x, y, y1, y0, z)
-  
-  # true model (not observable in practice because c is unobserved)
-  true_model <- lm(y ~ x + c)
-  true_model_coeffs[i, ] <- coef(true_model)[2:3]  # Store coefficients of x and c
-  
-  
-  # biased model (no correction for c)
-  biased_model <- lm(y ~ x)
-  biased_model_coeffs[i, ] <- coef(biased_model)[1:2] # store intercept and beta
-  
-  # IV approach
-  x_pred <- lm(x ~ z)$fitted.values
-  iv_model <- lm(y ~ x_pred)
-  iv_model_coeffs[i, ] <- coef(iv_model)[1:2]  # Store intercept and coefficient for x_pred
+beta_c <- c(0.8, 1.0, 1.2, 1.5)  # varying probabilities for c
+m <- length(beta_c)
 
-  # empirical ate
-  ate_emp <- mean(y[x == 1]) - mean(y[x == 0])
+# simulate dataset 
+set.seed(456)
+for (j in 1:m) {
+  for (i in 1:sim) {
+  
+    x_effect <- 1.5 # treatment effect
+    z_effect <- 0.7
+    
+    # generate variables
+    c <- rnorm(N, mean = beta_c[1], sd = 0.5) # unmeasured confounder 
+    z <- rbinom(N, 1, 0.5)  # instrument
+    x <- as.numeric(runif(N) <= z_effect*z + 0.4*c)  # binary treatment variable
+    
+    # potential outcomes
+    y0 <- 1 + x_effect*0 + c + rnorm(N, 0, 0.5)
+    y1 <- 1 + x_effect*1 + c + rnorm(N, 0, 0.5)  # real effect of 1.5
+    
+    # outcome Y based on treatment X
+    y <- x * y1 + (1-x) * y0
+    # y <- 1 + 1.5*x + c + rnorm(N, 0, 0.5)
+    
+    
+    # dataset
+    df <- data.frame(x, y, y1, y0, z)
+    
+    # true model (not observable in practice because c is unobserved)
+    true_model <- lm(y ~ x + c)
+    true_model_coeffs[i, ] <- coef(true_model)[2:3]  # Store coefficients of x and c
+    
+    # biased model (no correction for c)
+    biased_model <- lm(y ~ x)
+    biased_model_coeffs[i, ] <- coef(biased_model)[1:2] # store intercept and beta
+    
+    # IV approach
+    x_pred <- glm(x ~ z, family = "binomial")$fitted.values
+    iv_model <- lm(y ~ x_pred)
+    iv_model_coeffs[i, ] <- coef(iv_model)[1:2]  # Store intercept and coefficient for x_pred
+  
+    # empirical ate
+    ate_emp <- mean(y[x == 1]) - mean(y[x == 0])
   }
+}
 
 # create dfs
 true_model_results <- data.frame(
