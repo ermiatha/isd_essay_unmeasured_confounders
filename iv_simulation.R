@@ -2,6 +2,7 @@
 
 library(MASS)
 library(ggplot2)
+library(showtext)
 
 
 ### set up simulation parameters and empty storage matrices
@@ -83,47 +84,32 @@ iv_model_results <- data.frame(
 
 iv_ATE_emp <- mean(iv_model_results$ATE_emp)
 
-hist(iv_model_results$ATE_emp)
-abline(v=true_ATE_emp, col = "red")
-abline(v=biased_ATE_emp, col = "green")  
-abline(v=iv_ATE_emp, col = "purple")
+font_add("LMRoman12", "lmroman12-regular.otf")
+showtext_auto()
+png("shared_outputs/iv_model_histogram.png", width = 2400, height = 1800, res = 300)
+par(family = "LMRoman12")
+hist(iv_model_results$ATE_emp, 
+     breaks = 30,
+     col = "skyblue", 
+     border = "white",
+     main = "",
+     xlab = "Estimated ATE", 
+     ylab = "Frequency", 
+     xlim = c(0.5, 2.5),
+     ylim = c(0, 120))
+abline(v = true_ATE_emp, col = "red", lwd = 2, lty = 2)
+abline(v = biased_ATE_emp, col = "green", lwd = 2, lty = 1)
+abline(v = iv_ATE_emp, col = "purple", lwd = 2, lty = 1)
+legend("topright", 
+       legend = c("True ATE", "ATE (biased model)", "ATE (IV model)"), 
+       col = c("red", "green", "purple"), 
+       lty = c(2, 1, 1), 
+       lwd = 2, 
+       bty = "n", 
+       cex = 1)
+dev.off()
 
-
-iv_model_histogram <- ggplot(iv_model_results, aes(x = ATE_emp)) +
-  geom_histogram(binwidth = 0.05, fill = "skyblue", color = "white", alpha = 0.7) +
-  geom_vline(aes(xintercept = true_ATE_emp, color = "True ATE"), linetype = "dashed", size = 1.0) +
-  geom_vline(aes(xintercept = biased_ATE_emp, color = "ATE (biased model)"), linetype = "solid", size = 1.0) +
-  geom_vline(aes(xintercept = iv_ATE_emp, color = "ATE (IV model)"), linetype = "solid", size = 1.0) +
-  scale_color_manual(
-    name = NULL, # Remove legend title
-    values = c("True ATE" = "red", "ATE (biased model)" = "green", "ATE (IV model)" = "purple"),
-    breaks = c("True ATE", "ATE (biased model)", "ATE (IV model)"), # Ensure order of legend items
-    labels = c("True ATE", "ATE (biased model)", "ATE (IV model)") # Custom labels
-  ) +
-  labs(
-    title = "Distribution of ATE Estimates for IV Model",
-    x = "Estimated ATE",
-    y = "Frequency"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    axis.title = element_text(face = "bold"),
-    legend.position = c(0.85, 0.85), # Place legend inside the grid
-    legend.text = element_text(size = 9), # Adjust legend text size
-    legend.background = element_blank() # Transparent background
-  ) +
-  guides(color = guide_legend(
-    override.aes = list(
-      linetype = c("solid", "solid", "solid"), 
-      size = 0.5
-    )
-  ))
-
-ggsave("iv_hist_ate.png", iv_model_histogram, width = 8, height = 6)
-print(iv_model_histogram)
-
-
+'
 # visualize unbiasedness of iv approach: histogram of x in IV model 
 iv_x_mean <- mean(iv_model_results$ATE_emp)
 true_x_mean <- mean(true_model_results$ATE_true)
@@ -146,3 +132,4 @@ hist_coef <- ggplot(iv_model_results, aes(x = ATE_emp)) +
 
 ggsave("iv_model_histogram.png", width = 8, height = 6)
 hist_coef
+'

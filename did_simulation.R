@@ -7,7 +7,7 @@
 # 1 Setup
 
 library(stargazer)
-library(extrafont)
+library(showtext)
 set.seed(11235)
 
 #------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ cat("Standard Deviation of DiD Estimates:", did_estimate_std, "\n")
 
 # Plot the histogram of DiD estimates
 png("shared_outputs/did_estimates_histogram.png", width = 2400, height = 1800, res = 300)
-font_add("LMRoman12", "/Users/matteoramina/Library/Fonts/lmroman12-regular.otf")
+font_add("LMRoman12", "lmroman12-regular.otf")
 showtext_auto()
 par(family = "LMRoman12")
 hist(did_estimates, 
